@@ -1,3 +1,4 @@
+import logging
 import re
 import pandas as pd
 from pytextpipe import nlp, make_pipeline
@@ -78,7 +79,7 @@ class Models:
     def eval_model(self, model, data, within=False, balance=False):
         if isinstance(model, pd.DataFrame):
             model = model.to_dict('records')[0]
-        print('CV for model {}'.format(model))
+        logging.info('CV for model %s', model)
         args = {'make_pipeline': self.get_pipeline(model),
                 'text_col': 'text_lemmatized',
                 'label_col': 'satd',
