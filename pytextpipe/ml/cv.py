@@ -1,3 +1,4 @@
+import time
 import logging
 import pandas as pd
 from collections import Counter
@@ -40,9 +41,17 @@ def fit_predict_fold(fold_name, df, make_pipeline,
                      balance=False):
     train, test = train_test_split(fold_name, df, fold_col)
     logging.debug('Training model for fold %s', fold_name)
+    t1 = time.time()
     pipeline = fit(make_pipeline, train[text_col], train[label_col], balance)
+    t2 = time.time()
     logging.debug('Evaluating model for fold %s', fold_name)
-    return predict(fold_name, pipeline, test[text_col], test[label_col])
+    res = predict(fold_name, pipeline, test[text_col], test[label_col])
+    t3 = time.time()
+    res['train_time'] = t2 - t1
+    res['test_time'] = t3 - t2
+    res['total_time'] = t3 - t1
+    logging.debug('Elapsed time: %.2fs', t3 - t1)
+    return res
 
 
 def fit_predict(df, fold_col='fold', **kwargs):
