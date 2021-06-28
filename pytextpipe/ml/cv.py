@@ -5,7 +5,6 @@ from sklearn.utils.class_weight import compute_sample_weight
 
 def train_test_split(fold_name, df, fold_col='fold'):
     groups = df.groupby(df[fold_col] == fold_name)
-    print(groups)
     return groups.get_group(False), groups.get_group(True)
 
 
