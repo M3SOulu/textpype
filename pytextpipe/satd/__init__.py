@@ -87,8 +87,8 @@ class Models:
         if within:
             args['fold_col'] = 'within_fold'
         func = fit_predict_group if within else fit_predict
-        # TODO: Measure time
         folds = func(data, 'projectname', **args)
+        logging.info("Elapsed time for CV: %.2fs", sum(folds.total_time))
         return folds
 
     def eval(self, data, **kwargs):
