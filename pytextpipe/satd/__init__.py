@@ -1,8 +1,11 @@
 import re
 import pandas as pd
+from pytextpipe import nlp, make_pipeline
 from pytextpipe.nlp.preprocess import lemmatize, filter_stopwords, filter_size
+from pytextpipe.ml.cv import fit_predict_group, fit_predict
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
+from functools import partial
 
 FILENAME = 'data/technical_debt_dataset.csv'
 
@@ -40,3 +43,55 @@ def preprocess(df, lemmatizer=WordNetLemmatizer(),
     df['text_lemmatized'] = df.lemmas.apply(lambda l: ' '.join(l))
     df['keep'] = (~df.duplicate_clean) & (df.text_lemmatized.str.len() > 3)
     return df
+
+
+class Models:
+    def __init__(self, classifiers, vectorizers=None, samplers=None):
+        if vectorizers is None:
+            vectorizers = {'dtm': nlp.CountVectorizer}
+        if samplers is None:
+            samplers = {'none': None}
+        self.classifiers = classifiers
+        self.vectorizers = vectorizers
+        self.samplers = samplers
+
+    def __repr__(self):
+        s = 'SATDModels<\n vectorizer={},\n classifiers={},\n samplers={}\n>'
+        return s.format(self.vectorizers, self.classifiers, self.samplers)
+
+    def list(self):
+        names = ['vectorizer', 'sampler', 'classifier']
+        values = [self.vectorizers, self.samplers, self.classifiers]
+        values = list(map(dict.keys, values))
+        index = pd.MultiIndex.from_product(values, names=names)
+        return pd.DataFrame(index=index).reset_index()
+
+    def get_pipeline(self, model):
+        classifier = model['classifier']
+        vectorizer = model['vectorizer']
+        sampler = model['sampler']
+        return partial(make_pipeline,
+                       classifier=self.classifiers[classifier],
+                       vectorizer=self.vectorizers[vectorizer],
+                       sampler=self.samplers[sampler])
+
+    def eval_model(self, model, data, within=False, balance=False):
+        if isinstance(model, pd.DataFrame):
+            model = model.to_dict('records')[0]
+        print('CV for model {}'.format(model))
+        args = {'make_pipeline': self.get_pipeline(model),
+                'text_col': 'text_lemmatized',
+                'label_col': 'satd',
+                'balance': balance}
+        if within:
+            args['fold_col'] = 'within_fold'
+        func = fit_predict_group if within else fit_predict
+        # TODO: Measure time
+        folds = func(data, 'projectname', **args)
+        return folds
+
+    def eval(self, data, **kwargs):
+        models = self.list()
+        models = models.groupby(list(models.columns))
+        models = models.apply(self.eval_model, data, **kwargs)
+        return models
