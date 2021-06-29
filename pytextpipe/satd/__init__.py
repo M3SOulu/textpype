@@ -64,12 +64,16 @@ class Models:
         s = 'SATDModels<\n vectorizer={},\n classifiers={},\n samplers={}\n>'
         return s.format(self.vectorizers, self.classifiers, self.samplers)
 
-    def list(self):
+    def list(self, filter_balancing=True):
         names = ['vectorizer', 'sampler', 'classifier']
         values = [self.vectorizers, self.samplers, self.classifiers]
         values = list(map(dict.keys, values))
         index = pd.MultiIndex.from_product(values, names=names)
-        return pd.DataFrame(index=index).reset_index()
+        models = pd.DataFrame(index=index).reset_index()
+        if filter_balancing:
+            models = models[(models.sampler == 'none') |
+                            ~models.classifier.str.match('^balanced_')]
+        return models
 
     def get_pipeline(self, model):
         classifier = model['classifier']
