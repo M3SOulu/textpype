@@ -9,6 +9,7 @@ import swifter
 from pytextpipe import nlp, make_pipeline
 from pytextpipe.nlp.preprocess import lemmatize, filter_stopwords, filter_size
 from pytextpipe.ml.cv import fit_predict_group, fit_predict
+from pytextpipe.ml.metrics import compute_metrics
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from functools import partial
@@ -95,7 +96,7 @@ class Models:
             result.to_json(os.path.join(save_path, filename))
 
     def eval_model(self, model, data, within=False, balance=False,
-                   save_path=None, compress=None):
+                   save_path=None, compress=None, metrics_func=None):
         if type(model) is tuple:
             model = model[1]
         if isinstance(model, pd.DataFrame):
@@ -117,7 +118,15 @@ class Models:
         result = pd.concat([model.reset_index(drop=True),
                             folds.reset_index()], axis=1)
         self.save_model(model.iloc[0], result, save_path, compress)
-        return result
+        if metrics_func is None:
+            return result
+        else:
+            return self._compute_metrics(result, metrics_func)
+
+    def _compute_metrics(self, result, metrics_func):
+            metrics = compute_metrics(result, metrics_func)
+            model = result.drop(['obs', 'preds', 'probs'], axis=1)
+            return pd.concat([model, metrics], axis=1)
 
     def eval(self, data, models=None, parallel=False, pool_size=mp.cpu_count(),
              pool=None, swifter=False, **kwargs):
