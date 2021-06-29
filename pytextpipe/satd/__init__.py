@@ -1,6 +1,7 @@
 import time
 import logging
 import re
+import os.path
 import multiprocess as mp
 import pandas as pd
 import swifter
@@ -84,7 +85,17 @@ class Models:
                        vectorizer=self.vectorizers[vectorizer],
                        sampler=self.samplers[sampler])
 
-    def eval_model(self, model, data, within=False, balance=False):
+    def save_model(self, model, result, save_path, compress=None):
+        if save_path is not None:
+            filename = '{}_{}_{}.json'.format(model['classifier'],
+                                              model['vectorizer'],
+                                              model['sampler'])
+            if compress is not None:
+                filename = '{}.{}'.format(filename, compress)
+            result.to_json(os.path.join(save_path, filename))
+
+    def eval_model(self, model, data, within=False, balance=False,
+                   save_path=None, compress=None):
         if type(model) is tuple:
             model = model[1]
         if isinstance(model, pd.DataFrame):
@@ -103,8 +114,10 @@ class Models:
         logging.info("Elapsed time for CV: %.2fs (model %s)",
                      sum(folds.total_time), model)
         model = pd.concat([pd.DataFrame([model])] * len(folds))
-        return pd.concat([model.reset_index(drop=True),
-                          folds.reset_index()], axis=1)
+        result = pd.concat([model.reset_index(drop=True),
+                            folds.reset_index()], axis=1)
+        self.save_model(model.iloc[0], result, save_path, compress)
+        return result
 
     def eval(self, data, models=None, parallel=False, pool_size=mp.cpu_count(),
              pool=None, swifter=False, **kwargs):
