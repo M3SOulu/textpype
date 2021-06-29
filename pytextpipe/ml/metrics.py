@@ -12,7 +12,7 @@ def compute_binary_metrics(fold):
                ('recall', recall_score)]
     metrics = {m: f(fold['obs'], fold['preds']) for m, f in metrics}
     metrics['auc'] = roc_auc_score(fold['obs'], fold['probs'][:, 1])
-    metrics['prc'] = precision_recall_curve(fold['obs'], fold['probs'][:, 1])
+    # metrics['prc'] = precision_recall_curve(fold['obs'], fold['probs'][:, 1])
     return metrics
 
 
