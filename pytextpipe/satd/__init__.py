@@ -86,7 +86,7 @@ class Models:
                        vectorizer=self.vectorizers[vectorizer],
                        sampler=self.samplers[sampler])
 
-    def save_model(self, model, result, save_path, compress=None):
+    def _save_model(self, model, result, save_path, compress=None):
         if save_path is not None:
             filename = '{}_{}_{}.json'.format(model['classifier'],
                                               model['vectorizer'],
@@ -117,7 +117,7 @@ class Models:
         model = pd.concat([pd.DataFrame([model])] * len(folds))
         result = pd.concat([model.reset_index(drop=True),
                             folds.reset_index()], axis=1)
-        self.save_model(model.iloc[0], result, save_path, compress)
+        self._save_model(model.iloc[0], result, save_path, compress)
         if metrics_func is None:
             return result
         else:
