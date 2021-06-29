@@ -1,6 +1,10 @@
+import time
 import logging
 import re
+import multiprocess as mp
 import pandas as pd
+import swifter
+
 from pytextpipe import nlp, make_pipeline
 from pytextpipe.nlp.preprocess import lemmatize, filter_stopwords, filter_size
 from pytextpipe.ml.cv import fit_predict_group, fit_predict
@@ -77,8 +81,12 @@ class Models:
                        sampler=self.samplers[sampler])
 
     def eval_model(self, model, data, within=False, balance=False):
+        if type(model) is tuple:
+            model = model[1]
         if isinstance(model, pd.DataFrame):
             model = model.to_dict('records')[0]
+        elif isinstance(model, pd.Series):
+            model = model.to_dict()
         logging.info('CV for model %s', model)
         args = {'make_pipeline': self.get_pipeline(model),
                 'text_col': 'text_lemmatized',
@@ -88,11 +96,49 @@ class Models:
             args['fold_col'] = 'within_fold'
         func = fit_predict_group if within else fit_predict
         folds = func(data, 'projectname', **args)
-        logging.info("Elapsed time for CV: %.2fs", sum(folds.total_time))
-        return folds
+        logging.info("Elapsed time for CV: %.2fs (model %s)",
+                     sum(folds.total_time), model)
+        model = pd.concat([pd.DataFrame([model])] * len(folds))
+        return pd.concat([model.reset_index(drop=True),
+                          folds.reset_index()], axis=1)
 
-    def eval(self, data, **kwargs):
-        models = self.list()
+    def eval(self, data, models=None, parallel=False, pool_size=mp.cpu_count(),
+             pool=None, swifter=False, **kwargs):
+        if models is None:
+            models = self.list()
+        if pool is not None:
+            return self._eval_pool(data, models, pool, **kwargs)
+        elif swifter:
+            return self._eval_swifter(data, models, **kwargs)
+        elif parallel:
+            return self._eval_parallel(data, models, pool_size, **kwargs)
+        else:
+            return self._eval(data, models, **kwargs)
+
+    def _eval(self, data, models, **kwargs):
+        t = time.time()
+        models = models.apply(self.eval_model, axis=1, data=data, **kwargs)
+        logging.info('Total time: %.2fs', time.time() - t)
+        return pd.concat(list(models))
+
+    def _eval_pool(self, data, models, pool, **kwargs):
+        t = time.time()
         models = models.groupby(list(models.columns))
-        models = models.apply(self.eval_model, data, **kwargs)
-        return models
+        func = partial(self.eval_model, data=data, **kwargs)
+        res = pool.map(func, models)
+        logging.info('Total time: %.2fs', time.time() - t)
+        return pd.concat(res)
+
+    def _eval_parallel(self, data, models, pool_size=mp.cpu_count(), **kwargs):
+        pool = mp.Pool(pool_size)
+        res = self._eval_pool(data, models, pool, **kwargs)
+        pool.close()
+        pool.join()
+        return res
+
+    def _eval_swifter(self, data, models, **kwargs):
+        t = time.time()
+        models = models.swifter.apply(self.eval_model, axis=1,
+                                      data=data, **kwargs)
+        logging.info('Total time: %.2fs', time.time() - t)
+        return pd.concat(list(models))
