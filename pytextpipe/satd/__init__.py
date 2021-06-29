@@ -125,7 +125,7 @@ class Models:
 
     def _compute_metrics(self, result, metrics_func):
             metrics = compute_metrics(result, metrics_func)
-            model = result.drop(['obs', 'preds', 'probs'], axis=1)
+            model = result.drop(['obs', 'preds', 'probs', 'text'], axis=1)
             return pd.concat([model, metrics], axis=1)
 
     def eval(self, data, models=None, parallel=False, pool_size=mp.cpu_count(),
