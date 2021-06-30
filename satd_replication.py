@@ -1,8 +1,8 @@
 import logging
-import pytextpipe.ml as ml
-from pytextpipe.ml.folds import generate_group_folds
-from pytextpipe.ml.metrics import compute_binary_metrics
-from pytextpipe import satd, nlp
+import textpype.ml as ml
+from textpype.ml.folds import generate_group_folds
+from textpype.ml.metrics import compute_binary_metrics
+from textpype import satd, nlp
 from functools import partial
 
 from imblearn.over_sampling import (SMOTE, BorderlineSMOTE, SVMSMOTE, ADASYN,

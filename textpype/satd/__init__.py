@@ -6,10 +6,10 @@ import multiprocess as mp
 import pandas as pd
 import swifter
 
-from pytextpipe import nlp, make_pipeline
-from pytextpipe.nlp.preprocess import lemmatize, filter_stopwords, filter_size
-from pytextpipe.ml.cv import fit_predict_group, fit_predict
-from pytextpipe.ml.metrics import compute_metrics
+from textpype import nlp, make_pipeline
+from textpype.nlp.preprocess import lemmatize, filter_stopwords, filter_size
+from textpype.ml.cv import fit_predict_group, fit_predict
+from textpype.ml.metrics import compute_metrics
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from functools import partial

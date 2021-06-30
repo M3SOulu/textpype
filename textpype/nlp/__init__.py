@@ -1,5 +1,5 @@
-from pytextpipe import make_pipeline
-from pytextpipe.ml import balanced_lr, lr
+from textpype import make_pipeline
+from textpype.ml import balanced_lr, lr
 from functools import partial
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
